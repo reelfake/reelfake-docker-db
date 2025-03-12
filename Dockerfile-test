@@ -1,0 +1,11 @@
+FROM postgres
+
+ENV POSTGRES_DATABASE=${POSTGRES_DATABASE}
+ENV POSTGRES_USER=${POSTGRES_USER}
+ENV POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+
+COPY data/* /docker-entrypoint-initdb.d/
+COPY scripts/init-test.sql /docker-entrypoint-initdb.d/
+RUN chmod a+r /docker-entrypoint-initdb.d/*
+
+EXPOSE 5432
