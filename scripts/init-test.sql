@@ -284,7 +284,7 @@ ALTER TABLE ONLY public.dvd_order
 
 -- VIEWS
 
-CREATE OR REPLACE VIEW public.v_movie AS
+CREATE MATERIALIZED VIEW public.v_movie AS
     SELECT m.id, m.tmdb_id, m.imdb_id, m.title, m.original_title, m.overview, m.runtime, m.release_date,
     (SELECT ARRAY_AGG(genre_name) FROM public.genre g JOIN unnest(m.genre_ids) gid ON g.id = gid) AS genres, 
     (SELECT ARRAY_AGG(c.country_name) FROM public.country c JOIN unnest(m.origin_country_ids) cid ON c.id = cid) AS country,

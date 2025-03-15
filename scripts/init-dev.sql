@@ -284,7 +284,7 @@ ALTER TABLE ONLY public.dvd_order
 
 -- VIEWS
 
-CREATE OR REPLACE VIEW public.v_movie AS
+CREATE MATERIALIZED VIEW public.v_movie AS
     SELECT m.id, m.tmdb_id, m.imdb_id, m.title, m.original_title, m.overview, m.runtime, m.release_date,
     (SELECT ARRAY_AGG(genre_name) FROM public.genre g JOIN unnest(m.genre_ids) gid ON g.id = gid) AS genres, 
     (SELECT ARRAY_AGG(c.country_name) FROM public.country c JOIN unnest(m.origin_country_ids) cid ON c.id = cid) AS country,
@@ -312,6 +312,69 @@ BEGIN
 END;
 $$
 LANGUAGE plpgsql;
+
+-- Given the movie id, this function returns the movie detail with the actors
+-- CREATE OR REPLACE FUNCTION public.get_movie_detail_with_actors(movie_id int)
+--     RETURNS TABLE(
+--         id INT,
+--         imdb_id CHARACTER VARYING(60),
+--         title CHARACTER VARYING(255),
+--         original_title CHARACTER VARYING(255),
+--         overview TEXT,
+--         runtime SMALLINT,
+--         release_date DATE,
+--         genres TEXT[],
+--         country TEXT[],
+--         movie_language SMALLINT,
+--         movie_status CHARACTER VARYING(20),
+--         popularity REAL,
+--         budget BIGINT,
+--         revenue BIGINT,
+--         rating_average REAL,
+--         rating_count INT,
+--         poster_url CHARACTER VARYING(90),
+--         rental_rate NUMERIC(4,2),
+--         rental_duration SMALLINT,
+--         actors JSON
+--     )
+--     AS
+-- $$
+-- BEGIN
+--     RETURN QUERY
+--     SELECT 
+--     m.id, m.imdb_id, m.title, m.original_title, m.overview, m.runtime, m.release_date, m.genres, m.country, m.movie_language, 
+--     m.movie_status, m.popularity, m.budget, m.revenue, m.rating_average, m.rating_count, m.poster_url, m.rental_rate, m.rental_duration,
+--     array_to_json(array_agg(
+--         row_to_json(a)
+--     )) AS actors,
+--     array_agg(g.genre_name) AS genres,
+--     array_agg(c.country_name) AS countries,
+--     f.poster_url, f.rental_duration, f.rental_rate
+--     FROM public.film f
+--     LEFT JOIN public.film_actor fa ON fa.film_id = f.id
+--     LEFT JOIN public.actor a ON a.id = fa.actor_id
+--     LEFT JOIN unnest(f.genre_ids) gid ON TRUE
+--     LEFT JOIN public.genre g ON g.id = gid
+--     LEFT JOIN unnest(f.origin_country) cid ON TRUE
+--     LEFT JOIN public.country c ON c.id = cid
+--     WHERE f.id = 20
+--     GROUP BY f.id;
+--     -- SELECT f.id, f.tmdb_id, f.title, f.overview, f.release_year,
+--     -- (
+--     --     SELECT array_to_json(array_agg(row_to_json(t))
+--     -- ) AS items
+--     -- FROM (
+--     --     SELECT a.id, a.actor_name, a.profile_picture_url, fa.character_name 
+--     --     FROM actor a join film_actor fa on a.id = fa.actor_id WHERE fa.film_id = filmId
+--     -- ) t) as actors,
+--     -- (SELECT array_agg(genre_name) FROM public.genre g JOIN unnest(f.genre_ids) gid ON g.id = gid) AS genres,
+--     -- f.runtime,
+--     -- (SELECT array_agg(c.country_name) FROM public.country c JOIN unnest(f.origin_country) cid ON c.id = cid) AS countries,
+--     -- f.poster_url, f.rental_duration, f.rental_rate
+--     -- FROM public.film f WHERE f.id = filmId;
+-- END;
+-- $$
+-- LANGUAGE plpgsql;
 
 -- INDEXES
 -- CREATE INDEX idx_movie_release_date ON public.v_movie(release_date);
