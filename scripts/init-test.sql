@@ -295,26 +295,80 @@ CREATE MATERIALIZED VIEW public.v_movie AS
 
 -- FUNCTIONS
 
--- This function returns the list of films that contains the requested genre
-CREATE OR REPLACE FUNCTION public.get_movies_by_genres(requested_genres text[])
-    RETURNS SETOF public.v_movie
+-- This function returns a list of actors as json array for the given movie id
+CREATE OR REPLACE FUNCTION public.get_actors(m_id INT)
+    RETURNS JSON
+    AS
+$$
+BEGIN
+    RETURN (
+		SELECT 
+			json_agg(
+				json_build_object(
+					'actor_id', ma.actor_id, 'actor_name', a.actor_name, 'character_name', ma.character_name,
+					'cast_order', ma.cast_order, 'profile_picture_url', a.profile_picture_url
+				)
+			) as actors
+		FROM public.movie_actor ma LEFT JOIN public.actor a on ma.actor_id = a.id
+		WHERE ma.movie_id = m_id
+	);
+END;
+$$
+LANGUAGE plpgsql;
+
+-- Given the movie id, this function returns the movie detail with the actors as json array
+CREATE OR REPLACE FUNCTION public.get_movie_detail_with_actors(m_id INT)
+    RETURNS TABLE(
+        id INT,
+        imdb_id CHARACTER VARYING(60),
+        title CHARACTER VARYING(255),
+        original_title CHARACTER VARYING(255),
+        overview TEXT,
+        runtime SMALLINT,
+        release_date DATE,
+		genres CHARACTER VARYING[],
+        country CHARACTER VARYING[],
+		movie_language CHARACTER VARYING(60),
+        movie_status CHARACTER VARYING(20),
+        popularity REAL,
+        budget BIGINT,
+        revenue BIGINT,
+        rating_average REAL,
+        rating_count INT,
+        poster_url CHARACTER VARYING(90),
+        rental_rate NUMERIC(4,2),
+        rental_duration SMALLINT,
+		actors JSON
+    )
     AS
 $$
 BEGIN
     RETURN QUERY
-    SELECT m.id, m.title, m.overview, m.release_year,
-    (select ARRAY_AGG(genre_name) from genre g join unnest(m.genre_ids) gid on g.id = gid) as genres,
-    m.runtime,
-    (SELECT ARRAY_AGG(c.country_name) FROM country c JOIN unnest(m.origin_country) cid ON c.id = cid) AS country,
-    m.poster_url, m.rental_duration, m.rental_rate
-    FROM movie m
-    WHERE m.genre_ids @> (SELECT ARRAY_AGG(g.id) FROM genre g WHERE g.genre_name = ANY(requested_genres));
+	SELECT 
+	m.id, m.imdb_id, m.title, m.original_title, m.overview, m.runtime, m.release_date, m.genres, m.country, m.movie_language, m.movie_status,
+	m.popularity, m.budget, m.revenue, m.rating_average, m.rating_count, m.poster_url, m.rental_rate, m.rental_duration,
+	json_agg(
+		json_build_object(
+            'id', ma.actor_id, 'actorName', a.actor_name, 'characteName', ma.character_name,
+            'castOrder', ma.cast_order, 'profilePictureUrl', a.profile_picture_url
+		)
+	) as actors
+	FROM public.v_movie m
+	LEFT JOIN public.movie_actor ma ON ma.movie_id = m.id
+	LEFT JOIN public.actor a on ma.actor_id = a.id
+	WHERE m.id = m_id
+	GROUP BY m.id, m.imdb_id, m.title, m.original_title, m.overview, m.runtime, m.release_date, m.genres, m.country,
+	m.movie_language, m.movie_status, m.popularity, m.budget, m.revenue, m.rating_average, m.rating_count, m.poster_url, m.rental_rate, m.rental_duration;
 END;
 $$
 LANGUAGE plpgsql;
 
 -- INDEXES
--- CREATE INDEX idx_movie_release_date ON public.v_movie(release_date);
+CREATE UNIQUE INDEX idx_view_movie_id ON public.v_movie(id);
+CREATE INDEX idx_view_movie_release_date ON public.v_movie(release_date);
+CREATE UNIQUE INDEX idx_movie_actor_id ON public.movie_actor(id);
+CREATE INDEX idx_movie_actor_actor_id ON public.movie_actor(actor_id);
+CREATE INDEX idx_movie_actor_movie_id ON public.movie_actor(movie_id);
 
 -- TRIGGERS
 
@@ -375,3 +429,5 @@ COPY public.dvd_order(id, customer_id, staff_id, inventory_id, order_date, total
 ALTER TABLE ONLY public.staff
     ADD CONSTRAINT fk_staff_address_id FOREIGN KEY (address_id) REFERENCES public.address(id) ON UPDATE CASCADE ON DELETE RESTRICT,
     ADD CONSTRAINT fk_staff_store_id FOREIGN KEY (store_id) REFERENCES public.store(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+REFRESH MATERIALIZED VIEW public.v_movie;
