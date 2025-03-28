@@ -9,10 +9,39 @@ SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
-SELECT pg_catalog.set_config('search_path', '', false);
+SELECT pg_catalog.set_config('search_path', 'public', false);
 SET check_function_bodies = false;
 SET client_min_messages = warning;
 SET row_security = off;
+-- set search_path = public;
+
+-- CREATE EXTENSIONS
+CREATE EXTENSION IF NOT EXISTS citext;
+CREATE EXTENSION IF NOT EXISTS pg_cron;
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- CREATE TYPE public.movie_view_type AS (
+--     id INT,
+--     tmdb_id INT,
+--     imdb_id CHARACTER VARYING(60),
+--     title CHARACTER VARYING(255),
+--     original_title CHARACTER VARYING(255),
+--     overview TEXT,
+--     runtime INT,
+--     release_date DATE,
+--     genres CHARACTER VARYING(25)[],
+--     country CHARACTER VARYING(60)[],
+--     movie_language CHARACTER VARYING(60),
+--     movie_status CHARACTER VARYING(20),
+--     popularity REAL,
+--     budget BIGINT,
+--     revenue BIGINT,
+--     rating_average REAL,
+--     rating_count INT,
+--     poster_url CHARACTER VARYING(90),
+--     rental_rate NUMERIC(4,2),
+--     rental_duration SMALLINT,
+-- );
 
 CREATE OR REPLACE FUNCTION public.set_updated_at()
 	RETURNS TRIGGER
@@ -83,7 +112,7 @@ CREATE TABLE public.movie_language (
 ALTER TABLE public.movie_language OWNER TO postgres;
 
 CREATE TABLE public.movie (
-    id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     tmdb_id INT NOT NULL,
     imdb_id CHARACTER VARYING(60) DEFAULT NULL,
     title CHARACTER VARYING(255) NOT NULL,
@@ -113,7 +142,7 @@ CREATE TABLE public.actor (
     id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     tmdb_id INT NOT NULL,
     imdb_id CHARACTER VARYING(60) DEFAULT NULL,
-    actor_name CHARACTER VARYING(120) NOT NULL,
+    actor_name citext NOT NULL,
     biography TEXT,
     birthday DATE DEFAULT NULL,
     deathday DATE DEFAULT NULL,
@@ -168,8 +197,6 @@ CREATE TABLE public.staff (
     address_id SMALLINT NOT NULL,
     store_id INT NOT NULL,
     active BOOLEAN DEFAULT true NOT NULL,
-    user_name CHARACTER VARYING(40) NOT NULL,
-    user_password CHARACTER VARYING(40),
     phone_number CHARACTER VARYING(30) NOT NULL,
     avatar TEXT DEFAULT NULL,
     created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL,
@@ -186,8 +213,6 @@ CREATE TABLE public.customer (
     address_id INT NOT NULL,
     preferred_store_id INT DEFAULT NULL,
     active boolean DEFAULT true NOT NULL,
-    user_name CHARACTER VARYING(40) NOT NULL,
-    user_password CHARACTER VARYING(40),
     phone_number CHARACTER VARYING(30) NOT NULL,
     avatar CHARACTER VARYING(120),
     registered_on DATE DEFAULT ('now'::text)::date NOT NULL,
@@ -222,6 +247,20 @@ CREATE TABLE public.dvd_order (
 
 ALTER TABLE public.dvd_order OWNER TO postgres;
 
+CREATE TABLE public.user (
+    id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    customer_id INT DEFAULT NULL,
+    staff_id INT DEFAULT NULL,
+    manager_staff_id INT DEFAULT NULL,
+    user_uuid UUID DEFAULT (uuid_generate_v4()) NOT NULL,
+    user_email CHARACTER VARYING(150) NOT NULL,
+    user_password CHARACTER VARYING(255) NOT NULL,
+    created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL,
+    updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL
+);
+
+ALTER TABLE public.user OWNER TO postgres;
+
 -- CREATE TABLE public.rental (
 --     id int PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
 --     inventory_id int NOT NULL,
@@ -247,8 +286,8 @@ ALTER TABLE public.dvd_order OWNER TO postgres;
 -- ADD FOREIGN KEYS
 
 ALTER TABLE ONLY public.movie_actor
-    ADD CONSTRAINT fk_movie_actor_actor_id FOREIGN KEY (actor_id) REFERENCES public.actor(id) ON UPDATE CASCADE ON DELETE RESTRICT,
-    ADD CONSTRAINT fk_movie_actor_movie_id FOREIGN KEY (movie_id) REFERENCES public.movie(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+    ADD CONSTRAINT fk_movie_actor_actor_id FOREIGN KEY (actor_id) REFERENCES public.actor(id) ON UPDATE CASCADE ON DELETE CASCADE,
+    ADD CONSTRAINT fk_movie_actor_movie_id FOREIGN KEY (movie_id) REFERENCES public.movie(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.city
     ADD CONSTRAINT fk_city_country_id FOREIGN KEY (country_id) REFERENCES public.country(id) ON UPDATE CASCADE ON DELETE RESTRICT;
@@ -265,13 +304,13 @@ ALTER TABLE ONLY public.customer
     ADD CONSTRAINT fk_customer_pref_store_id FOREIGN KEY (preferred_store_id) REFERENCES public.store(id) ON UPDATE CASCADE ON DELETE RESTRICT;
 
 ALTER TABLE ONLY public.inventory
-    ADD CONSTRAINT fk_inventory_movie_id FOREIGN KEY (movie_id) REFERENCES public.movie(id) ON UPDATE CASCADE ON DELETE RESTRICT,
-    ADD CONSTRAINT fk_inventory_store_id FOREIGN KEY (store_id) REFERENCES public.store(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+    ADD CONSTRAINT fk_inventory_movie_id FOREIGN KEY (movie_id) REFERENCES public.movie(id) ON UPDATE CASCADE ON DELETE CASCADE,
+    ADD CONSTRAINT fk_inventory_store_id FOREIGN KEY (store_id) REFERENCES public.store(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.dvd_order
-    ADD CONSTRAINT fk_inventory_customer_id FOREIGN KEY (customer_id) REFERENCES public.customer(id) ON UPDATE CASCADE ON DELETE RESTRICT,
-    ADD CONSTRAINT fk_inventory_staff_id FOREIGN KEY (staff_id) REFERENCES public.staff(id) ON UPDATE CASCADE ON DELETE RESTRICT,
-    ADD CONSTRAINT fk_inventory_inventory_id FOREIGN KEY (inventory_id) REFERENCES public.inventory(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+    ADD CONSTRAINT fk_order_customer_id FOREIGN KEY (customer_id) REFERENCES public.customer(id) ON UPDATE CASCADE ON DELETE RESTRICT,
+    ADD CONSTRAINT fk_order_staff_id FOREIGN KEY (staff_id) REFERENCES public.staff(id) ON UPDATE CASCADE ON DELETE RESTRICT,
+    ADD CONSTRAINT fk_order_inventory_id FOREIGN KEY (inventory_id) REFERENCES public.inventory(id) ON UPDATE CASCADE ON DELETE RESTRICT;
 
 -- ALTER TABLE ONLY public.rental
 --     ADD CONSTRAINT fk_rental_inventory_id FOREIGN KEY (inventory_id) REFERENCES public.inventory(id) ON UPDATE CASCADE ON DELETE RESTRICT,
@@ -282,13 +321,18 @@ ALTER TABLE ONLY public.dvd_order
 --     ADD CONSTRAINT fk_payment_staff_id FOREIGN KEY (staff_id) REFERENCES public.staff(id) ON UPDATE CASCADE ON DELETE RESTRICT,
 --     ADD CONSTRAINT fk_payment_rental_id FOREIGN KEY (rental_id) REFERENCES public.rental(id) ON UPDATE CASCADE ON DELETE RESTRICT;
 
+ALTER TABLE ONLY public.user
+    ADD CONSTRAINT fk_user_customer_id FOREIGN KEY (customer_id) REFERENCES public.customer(id) ON UPDATE CASCADE ON DELETE RESTRICT,
+    ADD CONSTRAINT fk_user_staff_id FOREIGN KEY (staff_id) REFERENCES public.staff(id) ON UPDATE CASCADE ON DELETE RESTRICT,
+    ADD CONSTRAINT fk_user_manager_staff_id FOREIGN KEY (manager_staff_id) REFERENCES public.staff(id)  ON UPDATE CASCADE ON DELETE RESTRICT;
+
 -- VIEWS
 
 CREATE MATERIALIZED VIEW public.v_movie AS
     SELECT m.id, m.tmdb_id, m.imdb_id, m.title, m.original_title, m.overview, m.runtime, m.release_date,
     (SELECT ARRAY_AGG(genre_name) FROM public.genre g JOIN unnest(m.genre_ids) gid ON g.id = gid) AS genres, 
     (SELECT ARRAY_AGG(c.country_name) FROM public.country c JOIN unnest(m.origin_country_ids) cid ON c.id = cid) AS country,
-    (SELECT l.language_name FROM public.movie_language l WHERE id = m.language_id) as movie_language,
+    (SELECT l.language_name FROM public.movie_language l WHERE id = m.language_id) AS language_name,
     m.movie_status, m.popularity, m.budget, m.revenue, m.rating_average, m.rating_count, 
     m.poster_url, m.rental_rate, m.rental_duration
     FROM public.movie m;
@@ -305,13 +349,69 @@ BEGIN
 		SELECT 
 			json_agg(
 				json_build_object(
-					'actor_id', ma.actor_id, 'actor_name', a.actor_name, 'character_name', ma.character_name,
-					'cast_order', ma.cast_order, 'profile_picture_url', a.profile_picture_url
+					'id', ma.actor_id, 'actorName', a.actor_name, 'characteName', ma.character_name,
+					'castOrder', ma.cast_order, 'profilePictureUrl', a.profile_picture_url
 				)
 			) as actors
 		FROM public.movie_actor ma LEFT JOIN public.actor a on ma.actor_id = a.id
 		WHERE ma.movie_id = m_id
 	);
+END;
+$$
+LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION public.validate_movie_before_insert(
+    id INT,
+    tmdb_id INT,
+    imdb_id CHARACTER VARYING(60),
+    title CHARACTER VARYING(255),
+    original_title CHARACTER VARYING(255),
+    overview TEXT,
+    runtime INT,
+    release_date DATE,
+    genres CHARACTER VARYING(25)[],
+    country CHARACTER VARYING(60)[],
+    movie_language CHARACTER VARYING(60),
+    movie_status CHARACTER VARYING(20),
+    popularity REAL,
+    budget BIGINT,
+    revenue BIGINT,
+    rating_average REAL,
+    rating_count INT,
+    poster_url CHARACTER VARYING(90),
+    rental_rate NUMERIC(4,2),
+    rental_duration SMALLINT
+)
+    RETURNS TRIGGER AS
+$$
+DECLARE
+    genre_ids INT[];
+    country_ids INT[];
+    language_id INT;
+BEGIN
+    -- SELECT id INTO genre_ids FROM public.genre WHERE genre_name = ANY(NEW.genres);
+    -- IF NOT FOUND THEN
+    --     RAISE EXCEPTION 'Genres [genres:%] has invalid genre', NEW.genres;
+    -- END IF;
+
+    -- SELECT id INTO country_ids FROM public.country WHERE country_name = ANY(NEW.country);
+    -- IF NOT FOUND THEN
+    --     RAISE EXCEPTION 'Countries [country:%] has invalid country', NEW.country;
+    -- END IF;
+
+    -- SELECT id into language_id FROM public.movie_language WHERE language_name = NEW.language_name;
+    -- IF NOT FOUND THEN
+    --     RAISE EXCEPTION 'Language [language_name:%] is invalid', NEW.language_name;
+    -- END IF;
+
+    -- NEW.genre_ids = genre_ids;
+    -- NEW.origin_country_ids = country_ids;
+    -- NEW.language_id = language_id;
+
+    -- RETURN NEW;
+
+    NEW.id := null;
+    RETURN NEW;
 END;
 $$
 LANGUAGE plpgsql;
@@ -328,7 +428,7 @@ CREATE OR REPLACE FUNCTION public.get_movie_detail_with_actors(m_id INT)
         release_date DATE,
 		genres CHARACTER VARYING[],
         country CHARACTER VARYING[],
-		movie_language CHARACTER VARYING(60),
+		language_name CHARACTER VARYING(60),
         movie_status CHARACTER VARYING(20),
         popularity REAL,
         budget BIGINT,
@@ -345,12 +445,12 @@ $$
 BEGIN
     RETURN QUERY
 	SELECT 
-	m.id, m.imdb_id, m.title, m.original_title, m.overview, m.runtime, m.release_date, m.genres, m.country, m.movie_language, m.movie_status,
+	m.id, m.imdb_id, m.title, m.original_title, m.overview, m.runtime, m.release_date, m.genres, m.country, m.language_name, m.movie_status,
 	m.popularity, m.budget, m.revenue, m.rating_average, m.rating_count, m.poster_url, m.rental_rate, m.rental_duration,
 	json_agg(
 		json_build_object(
-            'id', ma.actor_id, 'actorName', a.actor_name, 'characteName', ma.character_name,
-            'castOrder', ma.cast_order, 'profilePictureUrl', a.profile_picture_url
+			'actor_id', ma.actor_id, 'actor_name', a.actor_name, 'character_name', ma.character_name,
+			'cast_order', ma.cast_order, 'profile_picture_url', a.profile_picture_url
 		)
 	) as actors
 	FROM public.v_movie m
@@ -358,17 +458,19 @@ BEGIN
 	LEFT JOIN public.actor a on ma.actor_id = a.id
 	WHERE m.id = m_id
 	GROUP BY m.id, m.imdb_id, m.title, m.original_title, m.overview, m.runtime, m.release_date, m.genres, m.country,
-	m.movie_language, m.movie_status, m.popularity, m.budget, m.revenue, m.rating_average, m.rating_count, m.poster_url, m.rental_rate, m.rental_duration;
+	m.language_name, m.movie_status, m.popularity, m.budget, m.revenue, m.rating_average, m.rating_count, m.poster_url, m.rental_rate, m.rental_duration;
 END;
 $$
 LANGUAGE plpgsql;
 
 -- INDEXES
-CREATE UNIQUE INDEX idx_view_movie_id ON public.v_movie(id);
-CREATE INDEX idx_view_movie_release_date ON public.v_movie(release_date);
-CREATE UNIQUE INDEX idx_movie_actor_id ON public.movie_actor(id);
+CREATE UNIQUE INDEX idx_vmovie_id ON public.v_movie(id);
+CREATE INDEX idx_v_movie_title ON public.v_movie(title);
+CREATE INDEX idx_v_movie_release_date ON public.v_movie(release_date);
 CREATE INDEX idx_movie_actor_actor_id ON public.movie_actor(actor_id);
 CREATE INDEX idx_movie_actor_movie_id ON public.movie_actor(movie_id);
+CREATE INDEX idx_actor_name ON public.actor(actor_name);
+-- CREATE INDEX idx_actor_trgrm_name ON public.actor USING GIN (actor_name gin_trgm_ops);
 
 -- TRIGGERS
 
@@ -408,19 +510,19 @@ CREATE TRIGGER created_at_trigger BEFORE INSERT ON public.dvd_order FOR EACH ROW
 
 -- LOAD DATA
 
-COPY public.genre(id, genre_name) FROM '/docker-entrypoint-initdb.d/genres.csv' DELIMITERS ',' CSV header;
-COPY public.movie_language(id, language_name, iso_language_code) FROM '/docker-entrypoint-initdb.d/languages.csv' DELIMITERS ',' CSV header;
-COPY public.country(id, country_name, iso_country_code) FROM '/docker-entrypoint-initdb.d/countries.csv' DELIMITERS ',' CSV header;
-COPY public.movie(id, tmdb_id, imdb_id, title, original_title, overview, runtime, release_date, genre_ids, origin_country_ids, language_id, movie_status, popularity, budget, revenue, rating_average, rating_count, poster_url) FROM '/docker-entrypoint-initdb.d/movies.csv' DELIMITERS ',' CSV header;
-COPY public.actor(id, tmdb_id, imdb_id, actor_name, biography, birthday, deathday, place_of_birth, popularity, profile_picture_url) FROM '/docker-entrypoint-initdb.d/actors.csv' DELIMITERS ',' CSV header;
-COPY public.movie_actor(id, movie_id, actor_id, character_name, cast_order) FROM '/docker-entrypoint-initdb.d/movie_actors.csv' DELIMITERS ',' CSV header;
-COPY public.city(id, city_name, state_name, country_id) FROM '/docker-entrypoint-initdb.d/cities.csv' DELIMITERS ',' CSV header;
-COPY public.address(id, address_line, city_id, postal_code) FROM '/docker-entrypoint-initdb.d/addresses.csv' DELIMITERS ',' CSV header;
-COPY public.staff(id, first_name, last_name, email, address_id, store_id, active, user_name, user_password, phone_number, avatar) FROM '/docker-entrypoint-initdb.d/staff.csv' DELIMITERS ',' CSV header;
-COPY public.store(id, manager_staff_id, address_id, phone_number) FROM '/docker-entrypoint-initdb.d/stores.csv' DELIMITERS ',' CSV header;
-COPY public.customer(id, first_name, last_name, email, address_id, preferred_store_id, active, user_name, user_password, phone_number, avatar, registered_on) FROM '/docker-entrypoint-initdb.d/customers.csv' DELIMITERS ',' CSV header;
-COPY public.inventory(id, movie_id, store_id, stock_count) FROM '/docker-entrypoint-initdb.d/inventory.csv' DELIMITERS ',' CSV header;
-COPY public.dvd_order(id, customer_id, staff_id, inventory_id, order_date, total_amount, order_status) FROM '/docker-entrypoint-initdb.d/orders.csv' DELIMITERS ',' CSV header;
+COPY public.genre(genre_name) FROM '/docker-entrypoint-initdb.d/genres.csv' DELIMITERS ',' CSV header;
+COPY public.movie_language(language_name, iso_language_code) FROM '/docker-entrypoint-initdb.d/languages.csv' DELIMITERS ',' CSV header;
+COPY public.country(country_name, iso_country_code) FROM '/docker-entrypoint-initdb.d/countries.csv' DELIMITERS ',' CSV header;
+COPY public.city(city_name, state_name, country_id) FROM '/docker-entrypoint-initdb.d/cities.csv' DELIMITERS ',' CSV header;
+COPY public.movie(tmdb_id, imdb_id, title, original_title, overview, runtime, release_date, genre_ids, origin_country_ids, language_id, movie_status, popularity, budget, revenue, rating_average, rating_count, poster_url) FROM '/docker-entrypoint-initdb.d/movies.csv' DELIMITERS ',' CSV header;
+COPY public.actor(tmdb_id, imdb_id, actor_name, biography, birthday, deathday, place_of_birth, popularity, profile_picture_url) FROM '/docker-entrypoint-initdb.d/actors.csv' DELIMITERS ',' CSV header;
+COPY public.movie_actor(movie_id, actor_id, character_name, cast_order) FROM '/docker-entrypoint-initdb.d/movie_actors.csv' DELIMITERS ',' CSV header;
+COPY public.address(address_line, city_id, postal_code) FROM '/docker-entrypoint-initdb.d/addresses.csv' DELIMITERS ',' CSV header;
+COPY public.staff(first_name, last_name, email, address_id, store_id, active, phone_number, avatar) FROM '/docker-entrypoint-initdb.d/staff.csv' DELIMITERS ',' CSV header;
+COPY public.store(manager_staff_id, address_id, phone_number) FROM '/docker-entrypoint-initdb.d/stores.csv' DELIMITERS ',' CSV header;
+COPY public.customer(first_name, last_name, email, address_id, preferred_store_id, active, phone_number, avatar, registered_on) FROM '/docker-entrypoint-initdb.d/customers.csv' DELIMITERS ',' CSV header;
+COPY public.inventory(movie_id, store_id, stock_count) FROM '/docker-entrypoint-initdb.d/inventory.csv' DELIMITERS ',' CSV header;
+COPY public.dvd_order(customer_id, staff_id, inventory_id, order_date, total_amount, order_status) FROM '/docker-entrypoint-initdb.d/orders.csv' DELIMITERS ',' CSV header;
 -- COPY public.rental(id, inventory_id, customer_id, staff_id, rental_date, return_date) FROM '/docker-entrypoint-initdb.d/rentals.csv' DELIMITERS '|' CSV;
 -- COPY public.payment(id, staff_id, rental_id, amount, payment_date) FROM '/docker-entrypoint-initdb.d/payments.csv' DELIMITERS '|' CSV;
 

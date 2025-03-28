@@ -1,6 +1,8 @@
-FROM postgres
+FROM postgres:17
 
-ENV POSTGRES_DATABASE=${POSTGRES_DATABASE}
+RUN apt-get update && apt-get install -y --no-install-recommends postgresql-17-cron
+
+ENV POSTGRES_DATABASE=reelfake_db_dev
 ENV POSTGRES_USER=${POSTGRES_USER}
 ENV POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
 
