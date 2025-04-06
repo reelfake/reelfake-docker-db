@@ -2,7 +2,6 @@ services:
   postgres_dev:
     image: reelfake/db_dev
     env_file: dev.env
-    restart: unless-stopped
     build:
       context: .
       dockerfile: ./Dockerfile-dev
@@ -25,7 +24,6 @@ services:
   postgres_test:
     image: reelfake/db_test
     env_file: test.env
-    restart: unless-stopped
     build:
       context: .
       dockerfile: ./Dockerfile-test
