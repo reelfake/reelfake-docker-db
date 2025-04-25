@@ -92,8 +92,8 @@ ALTER TABLE public.country OWNER TO postgres;
 
 CREATE TABLE public.city (
     id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    city_name CHARACTER VARYING(50) NOT NULL,
-    state_name CHARACTER VARYING(60) NOT NULL,
+    city_name citext NOT NULL,
+    state_name citext NOT NULL,
     country_id SMALLINT NOT NULL,
     created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL,
     updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL
@@ -162,7 +162,8 @@ CREATE TABLE public.movie_actor (
     character_name TEXT,
     cast_order SMALLINT,
     created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL,
-    updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL
+    updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL,
+    UNIQUE(movie_id, actor_id, character_name)
 );
 
 ALTER TABLE public.movie_actor OWNER TO postgres;
@@ -195,7 +196,7 @@ CREATE TABLE public.staff (
     last_name CHARACTER VARYING(45) NOT NULL,
     email CHARACTER VARYING(50),
     address_id SMALLINT NOT NULL,
-    store_id INT NOT NULL,
+    store_id INT DEFAULT NULL,
     active BOOLEAN DEFAULT true NOT NULL,
     phone_number CHARACTER VARYING(30) NOT NULL,
     avatar TEXT DEFAULT NULL,
@@ -328,27 +329,6 @@ ALTER TABLE ONLY public.user
     ADD CONSTRAINT fk_user_customer_id FOREIGN KEY (customer_id) REFERENCES public.customer(id) ON UPDATE CASCADE ON DELETE RESTRICT,
     ADD CONSTRAINT fk_user_staff_id FOREIGN KEY (staff_id) REFERENCES public.staff(id) ON UPDATE CASCADE ON DELETE RESTRICT,
     ADD CONSTRAINT fk_user_store_manager_id FOREIGN KEY (store_manager_id) REFERENCES public.staff(id)  ON UPDATE CASCADE ON DELETE RESTRICT;
-
--- This function returns a list of actors as json array for the given movie id
-CREATE OR REPLACE FUNCTION public.get_actors(m_id INT)
-    RETURNS JSON
-    AS
-$$
-BEGIN
-    RETURN (
-		SELECT 
-			json_agg(
-				json_build_object(
-					'id', ma.actor_id, 'actorName', a.actor_name, 'characteName', ma.character_name,
-					'castOrder', ma.cast_order, 'profilePictureUrl', a.profile_picture_url
-				)
-			) as actors
-		FROM public.movie_actor ma LEFT JOIN public.actor a on ma.actor_id = a.id
-		WHERE ma.movie_id = m_id
-	);
-END;
-$$
-LANGUAGE plpgsql;
 
 -- INDEXES
 CREATE INDEX idx_movie_title ON public.movie(title);
