@@ -76,3 +76,20 @@ The movies and actors related data are taken from [tmdb api](https://www.themovi
     - The order and customer has 1-to-many relationship i.e. a single customer can have many orders.
     - The order and staff has 1-to-many relationship i.e. a single staff can process many orders.
     - The order and inventory has 1-to-many relationship i.e. a single inventory can have many orders.
+   
+## Entity Relationship Visual
+![image](https://github.com/user-attachments/assets/01628ab6-757e-4f1b-be3b-4cf9b7a7ce41)
+
+## Indexes
+The following tables are indexed:
+1. movie
+   - title
+   - release_date
+2. actor
+   - actor_name
+
+## Triggers
+- The created_at column is current date when a new record is inserted.
+- The updated_at column is current date when any record is updated.
+- The following tables has triggers for created_at and updated_at:
+  - genre, country, movie_language, movie, actor, movie_actor, city, address, store, staff, customer, inventory, dvd_order
