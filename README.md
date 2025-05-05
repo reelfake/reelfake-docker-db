@@ -78,7 +78,7 @@ The movies and actors related data are taken from [tmdb api](https://www.themovi
     - The order and inventory has 1-to-many relationship i.e. a single inventory can have many orders.
    
 ## Entity Relationship Visual
-![image](https://github.com/user-attachments/assets/01628ab6-757e-4f1b-be3b-4cf9b7a7ce41)
+![image](https://github.com/user-attachments/assets/1ff2296c-be39-4559-88fa-0e06d586bf25)
 
 ## Indexes
 The following tables are indexed:
