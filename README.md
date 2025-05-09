@@ -99,6 +99,11 @@ The following tables are indexed:
 * These profiles were specifically created for reelfake-api and you can pick any one
 * The profile dev will start container with name db-dev and profile test with name db-test
 
+## Downloading sample data for the database
+* Since the files are large it cannot be published to git
+* The sample data are stored in csv file which can be downloaded from [here](https://pratapreddy15.github.io/reelfake-dbdata-downloader)
+* Downlaod and save the .csv files under data folder in the repo
+
 ## Creating .env file for docker compose
 * Depending on the profile you are using you may need to create .env file
 * If you are using dev profile, create dev.env
