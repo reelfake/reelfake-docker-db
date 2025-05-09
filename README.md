@@ -1,4 +1,5 @@
-# ReelFake Docker DB (dockerize postgres db for reelfake api)
+# ReelFake Docker DB
+### Dockerize postgres db for reelfake api
 
 ## About this repo
 reelfake-docker-db provides the db script to generate the database, tables, functions, triggers, etc everything that reelfake api needs. We can spin up the docker container just for learning purpose as well.
