@@ -13,35 +13,11 @@ SELECT pg_catalog.set_config('search_path', 'public', false);
 SET check_function_bodies = false;
 SET client_min_messages = warning;
 SET row_security = off;
--- set search_path = public;
 
 -- CREATE EXTENSIONS
 CREATE EXTENSION IF NOT EXISTS citext;
 CREATE EXTENSION IF NOT EXISTS pg_cron;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
--- CREATE TYPE public.movie_view_type AS (
---     id INT,
---     tmdb_id INT,
---     imdb_id CHARACTER VARYING(60),
---     title CHARACTER VARYING(255),
---     original_title CHARACTER VARYING(255),
---     overview TEXT,
---     runtime INT,
---     release_date DATE,
---     genres CHARACTER VARYING(25)[],
---     country CHARACTER VARYING(60)[],
---     movie_language CHARACTER VARYING(60),
---     movie_status CHARACTER VARYING(20),
---     popularity REAL,
---     budget BIGINT,
---     revenue BIGINT,
---     rating_average REAL,
---     rating_count INT,
---     poster_url CHARACTER VARYING(90),
---     rental_rate NUMERIC(4,2),
---     rental_duration SMALLINT,
--- );
 
 CREATE OR REPLACE FUNCTION public.set_updated_at()
 	RETURNS TRIGGER
@@ -130,8 +106,7 @@ CREATE TABLE public.movie (
     rating_average REAL NOT NULL,
     rating_count INT NOT NULL,
     poster_url CHARACTER VARYING(90) NOT NULL,
-    rental_rate NUMERIC(4,2) DEFAULT 11.00 NOT NULL,
-    rental_duration SMALLINT DEFAULT 3 NOT NULL,
+    rental_rate NUMERIC(4,2) DEFAULT 20.00 NOT NULL,
     created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL,
     updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL
 );
@@ -200,6 +175,7 @@ CREATE TABLE public.staff (
     active BOOLEAN DEFAULT true NOT NULL,
     phone_number CHARACTER VARYING(30) NOT NULL,
     avatar TEXT DEFAULT NULL,
+    user_password CHARACTER VARYING(120) DEFAULT NULL,
     created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL,
     updated_at timestamp without time zone DEFAULT now() NOT NULL
 );
@@ -217,6 +193,7 @@ CREATE TABLE public.customer (
     phone_number CHARACTER VARYING(30) NOT NULL,
     avatar CHARACTER VARYING(120),
     registered_on DATE DEFAULT ('now'::text)::date NOT NULL,
+    user_password CHARACTER VARYING(120) DEFAULT NULL,
     created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL,
     updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL
 );
@@ -234,19 +211,21 @@ CREATE TABLE public.inventory (
 
 ALTER TABLE public.inventory OWNER TO postgres;
 
-CREATE TABLE public.dvd_order (
+CREATE TABLE public.rental (
     id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    inventory_id INT NOT NULL,
     customer_id INT NOT NULL,
     staff_id INT NOT NULL,
-    inventory_id INT NOT NULL,
-    order_date TIMESTAMP WITHOUT TIME ZONE NOT NULL,
-    total_amount NUMERIC(5,2) NOT NULL,
-    order_status public.ORDER_STATUS_VALUES NOT NULL,
+    rental_date TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    return_date TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    rental_duration INT GENERATED ALWAYS AS (return_date::date - rental_date::date) STORED,
+    amount NUMERIC(5,2) NOT NULL,
+    payment_date timestamp without time zone NOT NULL,
     created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL,
-    updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL
+    updated_at timestamp without time zone DEFAULT now() NOT NULL
 );
 
-ALTER TABLE public.dvd_order OWNER TO postgres;
+ALTER TABLE public.rental OWNER TO postgres;
 
 CREATE TABLE public.user (
     id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
@@ -254,35 +233,13 @@ CREATE TABLE public.user (
     staff_id INT DEFAULT NULL,
     store_manager_id INT DEFAULT NULL,
     user_uuid UUID DEFAULT (uuid_generate_v4()) NOT NULL,
-    user_email CHARACTER VARYING(150) NOT NULL,
-    user_password CHARACTER VARYING(255) NOT NULL,
+    email CHARACTER VARYING(150) NOT NULL,
+    user_password CHARACTER VARYING(60) NOT NULL,
     created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL,
     updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL
 );
 
 ALTER TABLE public.user OWNER TO postgres;
-
--- CREATE TABLE public.rental (
---     id int PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
---     inventory_id int NOT NULL,
---     customer_id int NOT NULL,
---     staff_id int NOT NULL,
---     rental_date timestamp without time zone NOT NULL,
---     return_date timestamp without time zone,
---     updated_at timestamp without time zone DEFAULT now() NOT NULL
--- );
-
--- ALTER TABLE public.rental OWNER TO postgres;
-
--- CREATE TABLE public.payment (
---     id int PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
---     staff_id int NOT NULL,
---     rental_id int NOT NULL,
---     amount numeric(5,2) NOT NULL,
---     payment_date timestamp without time zone NOT NULL
--- );
-
--- ALTER TABLE public.payment OWNER TO postgres;
 
 -- ADD FOREIGN KEYS
 
@@ -311,19 +268,10 @@ ALTER TABLE ONLY public.inventory
     ADD CONSTRAINT fk_inventory_movie_id FOREIGN KEY (movie_id) REFERENCES public.movie(id) ON UPDATE CASCADE ON DELETE CASCADE,
     ADD CONSTRAINT fk_inventory_store_id FOREIGN KEY (store_id) REFERENCES public.store(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
-ALTER TABLE ONLY public.dvd_order
-    ADD CONSTRAINT fk_order_customer_id FOREIGN KEY (customer_id) REFERENCES public.customer(id) ON UPDATE CASCADE ON DELETE RESTRICT,
-    ADD CONSTRAINT fk_order_staff_id FOREIGN KEY (staff_id) REFERENCES public.staff(id) ON UPDATE CASCADE ON DELETE RESTRICT,
-    ADD CONSTRAINT fk_order_inventory_id FOREIGN KEY (inventory_id) REFERENCES public.inventory(id) ON UPDATE CASCADE ON DELETE RESTRICT;
-
--- ALTER TABLE ONLY public.rental
---     ADD CONSTRAINT fk_rental_inventory_id FOREIGN KEY (inventory_id) REFERENCES public.inventory(id) ON UPDATE CASCADE ON DELETE RESTRICT,
---     ADD CONSTRAINT fk_rental_customer_id FOREIGN KEY (customer_id) REFERENCES public.customer(id) ON UPDATE CASCADE ON DELETE RESTRICT,
---     ADD CONSTRAINT fk_rental_staff_id FOREIGN KEY (staff_id) REFERENCES public.staff(id) ON UPDATE CASCADE ON DELETE RESTRICT;
-
--- ALTER TABLE ONLY public.payment 
---     ADD CONSTRAINT fk_payment_staff_id FOREIGN KEY (staff_id) REFERENCES public.staff(id) ON UPDATE CASCADE ON DELETE RESTRICT,
---     ADD CONSTRAINT fk_payment_rental_id FOREIGN KEY (rental_id) REFERENCES public.rental(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+ALTER TABLE ONLY public.rental
+    ADD CONSTRAINT fk_rental_inventory_id FOREIGN KEY (inventory_id) REFERENCES public.inventory(id) ON UPDATE CASCADE ON DELETE RESTRICT,
+    ADD CONSTRAINT fk_rental_customer_id FOREIGN KEY (customer_id) REFERENCES public.customer(id) ON UPDATE CASCADE ON DELETE RESTRICT,
+    ADD CONSTRAINT fk_rental_staff_id FOREIGN KEY (staff_id) REFERENCES public.staff(id) ON UPDATE CASCADE ON DELETE RESTRICT;
 
 ALTER TABLE ONLY public.user
     ADD CONSTRAINT fk_user_customer_id FOREIGN KEY (customer_id) REFERENCES public.customer(id) ON UPDATE CASCADE ON DELETE RESTRICT,
@@ -336,7 +284,6 @@ CREATE INDEX idx_movie_release_date ON public.movie(release_date);
 CREATE INDEX idx_movie_actor_actor_id ON public.movie_actor(actor_id);
 CREATE INDEX idx_movie_actor_movie_id ON public.movie_actor(movie_id);
 CREATE INDEX idx_actor_name ON public.actor(actor_name);
--- CREATE INDEX idx_actor_trgrm_name ON public.actor USING GIN (actor_name gin_trgm_ops);
 
 -- TRIGGERS
 
@@ -353,9 +300,7 @@ CREATE TRIGGER last_updated_trigger BEFORE UPDATE ON public.store FOR EACH ROW E
 CREATE TRIGGER last_updated_trigger BEFORE UPDATE ON public.staff FOR EACH ROW EXECUTE PROCEDURE public.set_updated_at();
 CREATE TRIGGER last_updated_trigger BEFORE UPDATE ON public.customer FOR EACH ROW EXECUTE PROCEDURE public.set_updated_at();
 CREATE TRIGGER last_updated_trigger BEFORE UPDATE ON public.inventory FOR EACH ROW EXECUTE PROCEDURE public.set_updated_at();
-CREATE TRIGGER last_updated_trigger BEFORE UPDATE ON public.dvd_order FOR EACH ROW EXECUTE PROCEDURE public.set_updated_at();
--- CREATE TRIGGER last_updated_trigger BEFORE UPDATE ON public.rental FOR EACH ROW EXECUTE PROCEDURE public.set_updated_at();
--- CREATE TRIGGER last_updated_trigger BEFORE UPDATE ON public.payment FOR EACH ROW EXECUTE PROCEDURE public.set_updated_at();
+CREATE TRIGGER last_updated_trigger BEFORE UPDATE ON public.rental FOR EACH ROW EXECUTE PROCEDURE public.set_updated_at();
 
 -- Created at
 CREATE TRIGGER created_at_trigger BEFORE INSERT ON public.genre FOR EACH ROW EXECUTE PROCEDURE public.set_created_at();
@@ -370,9 +315,7 @@ CREATE TRIGGER created_at_trigger BEFORE INSERT ON public.store FOR EACH ROW EXE
 CREATE TRIGGER created_at_trigger BEFORE INSERT ON public.staff FOR EACH ROW EXECUTE PROCEDURE public.set_created_at();
 CREATE TRIGGER created_at_trigger BEFORE INSERT ON public.customer FOR EACH ROW EXECUTE PROCEDURE public.set_created_at();
 CREATE TRIGGER created_at_trigger BEFORE INSERT ON public.inventory FOR EACH ROW EXECUTE PROCEDURE public.set_created_at();
-CREATE TRIGGER created_at_trigger BEFORE INSERT ON public.dvd_order FOR EACH ROW EXECUTE PROCEDURE public.set_created_at();
--- CREATE TRIGGER created_at_trigger BEFORE INSERT ON public.rental FOR EACH ROW EXECUTE PROCEDURE public.set_created_at();
--- CREATE TRIGGER created_at_trigger BEFORE INSERT ON public.payment FOR EACH ROW EXECUTE PROCEDURE public.set_created_at();
+CREATE TRIGGER created_at_trigger BEFORE INSERT ON public.rental FOR EACH ROW EXECUTE PROCEDURE public.set_created_at();
 
 -- LOAD DATA
 
@@ -384,13 +327,11 @@ COPY public.movie(tmdb_id, imdb_id, title, original_title, overview, runtime, re
 COPY public.actor(tmdb_id, imdb_id, actor_name, biography, birthday, deathday, place_of_birth, popularity, profile_picture_url) FROM '/docker-entrypoint-initdb.d/actors.csv' DELIMITERS ',' CSV header;
 COPY public.movie_actor(movie_id, actor_id, character_name, cast_order) FROM '/docker-entrypoint-initdb.d/movie_actors.csv' DELIMITERS ',' CSV header;
 COPY public.address(address_line, city_id, postal_code) FROM '/docker-entrypoint-initdb.d/addresses.csv' DELIMITERS ',' CSV header;
-COPY public.staff(first_name, last_name, email, address_id, store_id, active, phone_number, avatar) FROM '/docker-entrypoint-initdb.d/staff.csv' DELIMITERS ',' CSV header;
+COPY public.staff(first_name, last_name, email, address_id, store_id, active, phone_number, avatar, user_password) FROM '/docker-entrypoint-initdb.d/staff.csv' DELIMITERS ',' CSV header;
 COPY public.store(store_manager_id, address_id, phone_number) FROM '/docker-entrypoint-initdb.d/stores.csv' DELIMITERS ',' CSV header;
-COPY public.customer(first_name, last_name, email, address_id, preferred_store_id, active, phone_number, avatar, registered_on) FROM '/docker-entrypoint-initdb.d/customers.csv' DELIMITERS ',' CSV header;
+COPY public.customer(first_name, last_name, email, address_id, preferred_store_id, active, phone_number, avatar, registered_on, user_password) FROM '/docker-entrypoint-initdb.d/customers.csv' DELIMITERS ',' CSV header;
 COPY public.inventory(movie_id, store_id, stock_count) FROM '/docker-entrypoint-initdb.d/inventory.csv' DELIMITERS ',' CSV header;
-COPY public.dvd_order(customer_id, staff_id, inventory_id, order_date, total_amount, order_status) FROM '/docker-entrypoint-initdb.d/orders.csv' DELIMITERS ',' CSV header;
--- COPY public.rental(id, inventory_id, customer_id, staff_id, rental_date, return_date) FROM '/docker-entrypoint-initdb.d/rentals.csv' DELIMITERS '|' CSV;
--- COPY public.payment(id, staff_id, rental_id, amount, payment_date) FROM '/docker-entrypoint-initdb.d/payments.csv' DELIMITERS '|' CSV;
+COPY public.rental(customer_id, staff_id, inventory_id, rental_date, return_date, amount, payment_date) FROM '/docker-entrypoint-initdb.d/rentals.csv' DELIMITERS ',' CSV header;;
 
 -- Set foreign keys for staff table
 
