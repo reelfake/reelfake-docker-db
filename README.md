@@ -101,8 +101,9 @@ The following tables are indexed:
 
 ## Downloading sample data for the database
 * Since the files are large it cannot be published to git
+* Create data directory under project root if it does not already exist
 * The sample data are stored in csv file which can be downloaded from [here](https://pratapreddy15.github.io/reelfake-dbdata-downloader)
-* Downlaod and save the .csv files under data folder in the repo
+* Downlaod and save the .csv files under data directory in the project root
 
 ## Creating .env file for docker compose
 * Depending on the profile you are using you may need to create .env file
