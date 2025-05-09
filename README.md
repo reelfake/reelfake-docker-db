@@ -20,7 +20,7 @@ The movies and actors related data are taken from [tmdb api](https://www.themovi
 - staff
 - customer
 - inventory
-- dvd_order
+- rental
 - user (this is specific to reelfake api and you may not need this)
 
 ## Models
@@ -70,12 +70,12 @@ The movies and actors related data are taken from [tmdb api](https://www.themovi
     - This entity has movie_id referencing movie and store_id referencing store.
     - The inventory and movie has 1-to-many relationship i.e. a single movie can have many inventory.
     - The inventory and store has 1-to-many relationship i.e. a single store can have many inventory.
-14. DVD Order
-    - This entity contains the customer order related information.
+14. Rental
+    - This entity contains the customer rental related information.
     - This entity has customer_id referencing customer, staff_id referencing staff and inventory_id referencing inventory.
-    - The order and customer has 1-to-many relationship i.e. a single customer can have many orders.
-    - The order and staff has 1-to-many relationship i.e. a single staff can process many orders.
-    - The order and inventory has 1-to-many relationship i.e. a single inventory can have many orders.
+    - The rental and customer has 1-to-many relationship i.e. a single customer can have many orders.
+    - The rental and staff has 1-to-many relationship i.e. a single staff can process many orders.
+    - The rental and inventory has 1-to-many relationship i.e. a single inventory can have many orders.
    
 ## Entity Relationship Visual
 ![image](https://github.com/user-attachments/assets/1ff2296c-be39-4559-88fa-0e06d586bf25)
