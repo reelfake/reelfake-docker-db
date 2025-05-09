@@ -232,7 +232,6 @@ CREATE TABLE public.user (
     customer_id INT DEFAULT NULL,
     staff_id INT DEFAULT NULL,
     store_manager_id INT DEFAULT NULL,
-    user_uuid UUID DEFAULT (uuid_generate_v4()) NOT NULL,
     email CHARACTER VARYING(150) NOT NULL,
     user_password CHARACTER VARYING(60) NOT NULL,
     created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL,
