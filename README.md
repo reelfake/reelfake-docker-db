@@ -1,5 +1,4 @@
 # ReelFake Docker DB
-### Dockerize postgres db for reelfake api
 
 ## About this repo
 Dockerize postgres db for ReelFake api. This repo provides the db script to generate the database, tables, functions, triggers, etc everything that reelfake api needs. We can spin up the docker container just for learning purpose as well.
@@ -94,3 +93,42 @@ The following tables are indexed:
 - The updated_at column is current date when any record is updated.
 - The following tables has triggers for created_at and updated_at:
   - genre, country, movie_language, movie, actor, movie_actor, city, address, store, staff, customer, inventory, dvd_order
+
+## Points to know before starting the container
+* In docker compose file, there are two profiles (dev and test)
+* These profiles were specifically created for reelfake-api and you can pick any one
+* The profile dev will start container with name db-dev and profile test with name db-test
+
+## Creating .env file for docker compose
+* Depending on the profile you are using you may need to create .env file
+* If you are using dev profile, create dev.env
+* If you using test profile, create test.env
+* In the created .env file, add **POSTGRES_USER** and **POSTGRES_PASSWORD** variables with the values of your choice
+
+## Spinning up the database
+1. Pre-requisites
+   1. Latest version of docker is installed
+   2. PgAdmin or any database client to connect and query the database
+   3. If running on linux, docker compose will need to be installed separately from docker
+2. Starting docker container
+   1. cd in to the repo directory
+   2. Run the docker compose in detached mode (to see the output streaming on terminal remove -d flat)
+      ```
+      docker compose --profile dev -d
+      ```
+   3. The above command will start the container with name db-dev
+  
+## Stopping the container
+1. Run below command in the terminal
+   ```
+   docker compose --profile dev down -v
+   ```
+2. The above command will delete the volume that was created for the database
+3. If you do not need the images, you can delete them with below command (will ask for confirmation)
+   ```
+   docker image prune -a
+   ```
+4. To clear the cache that was created while starting the container, run the below command (will ask for confirmation)
+   ```
+   docker builder prune
+   ```
