@@ -4,6 +4,7 @@ ALTER DATABASE reelfake_db_dev OWNER TO postgres;
 
 \connect reelfake_db_dev
 
+SET TIME ZONE 'UTC';
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
@@ -45,7 +46,7 @@ LANGUAGE plpgsql;
 
 ALTER FUNCTION public.set_created_at() OWNER TO postgres;
 
-CREATE TYPE public.ORDER_STATUS_VALUES AS ENUM ('Pending', 'Shipped', 'Delivered', 'Cancelled');
+CREATE TYPE public.RENTAL_TYPE AS ENUM ('in-store', 'online');
 
 CREATE TABLE public.genre (
     id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
@@ -215,12 +216,16 @@ CREATE TABLE public.rental (
     id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     inventory_id INT NOT NULL,
     customer_id INT NOT NULL,
-    staff_id INT NOT NULL,
-    rental_date TIMESTAMP WITHOUT TIME ZONE NOT NULL,
-    return_date TIMESTAMP WITHOUT TIME ZONE NOT NULL,
-    rental_duration INT GENERATED ALWAYS AS (return_date::date - rental_date::date) STORED,
-    amount NUMERIC(5,2) NOT NULL,
+    staff_id INT DEFAULT NULL,
+    rental_start_date TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    rental_end_date TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    return_date TIMESTAMP WITHOUT TIME ZONE DEFAULT NULL,
+    rental_duration INT GENERATED ALWAYS AS (rental_end_date::date - rental_start_date::date) STORED,
+    delayed_by_days INT DEFAULT NULL,
+    amount_paid NUMERIC(5,2) NOT NULL,
+    discount_amount NUMERIC(5,2) DEFAULT 0.00 CHECK(discount_amount BETWEEN 0.00 AND 100.00),
     payment_date timestamp without time zone NOT NULL,
+    rental_type RENTAL_TYPE NOT NULL,
     created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL,
     updated_at timestamp without time zone DEFAULT now() NOT NULL
 );
@@ -330,7 +335,7 @@ COPY public.staff(first_name, last_name, email, address_id, store_id, active, ph
 COPY public.store(store_manager_id, address_id, phone_number) FROM '/docker-entrypoint-initdb.d/stores.csv' DELIMITERS ',' CSV header;
 COPY public.customer(first_name, last_name, email, address_id, preferred_store_id, active, phone_number, avatar, registered_on, user_password) FROM '/docker-entrypoint-initdb.d/customers.csv' DELIMITERS ',' CSV header;
 COPY public.inventory(movie_id, store_id, stock_count) FROM '/docker-entrypoint-initdb.d/inventory.csv' DELIMITERS ',' CSV header;
-COPY public.rental(customer_id, staff_id, inventory_id, rental_date, return_date, amount, payment_date) FROM '/docker-entrypoint-initdb.d/rentals.csv' DELIMITERS ',' CSV header;;
+COPY public.rental(customer_id, staff_id, inventory_id, rental_start_date, rental_end_date, return_date, delayed_by_days, amount_paid, discount_amount, payment_date, rental_type) FROM '/docker-entrypoint-initdb.d/rentals.csv' DELIMITERS ',' CSV header;
 
 -- Set foreign keys for staff table
 
