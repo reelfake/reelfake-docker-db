@@ -59,7 +59,7 @@ ALTER TABLE public.genre OWNER TO postgres;
 
 CREATE TABLE public.country (
     id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    country_name CHARACTER VARYING(60) NOT NULL,
+    country_name citext NOT NULL,
     iso_country_code CHARACTER VARYING(2) NOT NULL,
     created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL,
     updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL
@@ -106,7 +106,7 @@ CREATE TABLE public.movie (
     revenue BIGINT NOT NULL,
     rating_average REAL NOT NULL,
     rating_count INT NOT NULL,
-    poster_url CHARACTER VARYING(90) NOT NULL,
+    poster_url CHARACTER VARYING(90),
     rental_rate NUMERIC(4,2) DEFAULT 20.00 NOT NULL,
     created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL,
     updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL
@@ -146,9 +146,9 @@ ALTER TABLE public.movie_actor OWNER TO postgres;
 
 CREATE TABLE public.address (
     id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    address_line CHARACTER VARYING(120) NOT NULL,
+    address_line citext NOT NULL,
     city_id int NOT NULL,
-    postal_code CHARACTER VARYING(10),
+    postal_code citext NOT NULL,
     created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL,
     updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL
 );
@@ -234,6 +234,8 @@ ALTER TABLE public.rental OWNER TO postgres;
 
 CREATE TABLE public.user (
     id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    first_name CHARACTER VARYING(45) NOT NULL,
+    last_name CHARACTER VARYING(45) NOT NULL,
     customer_id INT DEFAULT NULL,
     staff_id INT DEFAULT NULL,
     store_manager_id INT DEFAULT NULL,
@@ -288,6 +290,11 @@ CREATE INDEX idx_movie_release_date ON public.movie(release_date);
 CREATE INDEX idx_movie_actor_actor_id ON public.movie_actor(actor_id);
 CREATE INDEX idx_movie_actor_movie_id ON public.movie_actor(movie_id);
 CREATE INDEX idx_actor_name ON public.actor(actor_name);
+CREATE INDEX idx_address_line ON public.address(address_line);
+CREATE INDEX idx_postal_code ON public.address(postal_code);
+CREATE INDEX idx_city_name ON public.city(city_name);
+CREATE INDEX idx_state_name ON public.city(state_name);
+CREATE INDEX idx_country_name ON public.country(country_name);
 
 -- TRIGGERS
 
