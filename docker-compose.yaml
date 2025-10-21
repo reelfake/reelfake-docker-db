@@ -7,16 +7,16 @@ services:
       dockerfile: ./Dockerfile-dev
     container_name: db-dev
     ports:
-      - '5432:5432'
+      - "5432:5432"
     command:
       [
-        'postgres',
-        '-c',
-        'max_wal_size=4GB',
-        '-c',
-        'shared_preload_libraries=pg_cron',
-        '-c',
-        'cron.database_name=reelfake_db_dev',
+        "postgres",
+        "-c",
+        "max_wal_size=4GB",
+        "-c",
+        "shared_preload_libraries=pg_cron",
+        "-c",
+        "cron.database_name=reelfake_db",
       ]
     profiles:
       - dev
@@ -29,16 +29,16 @@ services:
       dockerfile: ./Dockerfile-test
     container_name: db-test
     ports:
-      - '5433:5432'
+      - "5433:5432"
     command:
       [
-        'postgres',
-        '-c',
-        'max_wal_size=4GB',
-        '-c',
-        'shared_preload_libraries=pg_cron',
-        '-c',
-        'cron.database_name=reelfake_db_test',
+        "postgres",
+        "-c",
+        "max_wal_size=4GB",
+        "-c",
+        "shared_preload_libraries=pg_cron",
+        "-c",
+        "cron.database_name=reelfake_db",
       ]
     profiles:
       - test

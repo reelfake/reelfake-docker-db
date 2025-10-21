@@ -1,8 +1,8 @@
-CREATE DATABASE reelfake_db_dev WITH TEMPLATE = template0 ENCODING = 'UTF8';
+CREATE DATABASE reelfake_db WITH TEMPLATE = template0 ENCODING = 'UTF8';
 
-ALTER DATABASE reelfake_db_dev OWNER TO postgres;
+ALTER DATABASE reelfake_db OWNER TO postgres;
 
-\connect reelfake_db_dev
+\connect reelfake_db
 
 SET TIME ZONE 'UTC';
 SET statement_timeout = 0;
@@ -232,20 +232,20 @@ CREATE TABLE public.rental (
 
 ALTER TABLE public.rental OWNER TO postgres;
 
-CREATE TABLE public.user (
-    id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    first_name CHARACTER VARYING(45) NOT NULL,
-    last_name CHARACTER VARYING(45) NOT NULL,
-    customer_id INT DEFAULT NULL,
-    staff_id INT DEFAULT NULL,
-    store_manager_id INT DEFAULT NULL,
-    email CHARACTER VARYING(150) NOT NULL,
-    user_password CHARACTER VARYING(60) NOT NULL,
-    created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL,
-    updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL
-);
+-- CREATE TABLE public.user (
+--     id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+--     first_name CHARACTER VARYING(45) NOT NULL,
+--     last_name CHARACTER VARYING(45) NOT NULL,
+--     customer_id INT DEFAULT NULL,
+--     staff_id INT DEFAULT NULL,
+--     store_manager_id INT DEFAULT NULL,
+--     email CHARACTER VARYING(150) NOT NULL,
+--     user_password CHARACTER VARYING(60) NOT NULL,
+--     created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL,
+--     updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL
+-- );
 
-ALTER TABLE public.user OWNER TO postgres;
+-- ALTER TABLE public.user OWNER TO postgres;
 
 -- ADD FOREIGN KEYS
 
@@ -279,10 +279,10 @@ ALTER TABLE ONLY public.rental
     ADD CONSTRAINT fk_rental_customer_id FOREIGN KEY (customer_id) REFERENCES public.customer(id) ON UPDATE CASCADE ON DELETE RESTRICT,
     ADD CONSTRAINT fk_rental_staff_id FOREIGN KEY (staff_id) REFERENCES public.staff(id) ON UPDATE CASCADE ON DELETE RESTRICT;
 
-ALTER TABLE ONLY public.user
-    ADD CONSTRAINT fk_user_customer_id FOREIGN KEY (customer_id) REFERENCES public.customer(id) ON UPDATE CASCADE ON DELETE RESTRICT,
-    ADD CONSTRAINT fk_user_staff_id FOREIGN KEY (staff_id) REFERENCES public.staff(id) ON UPDATE CASCADE ON DELETE RESTRICT,
-    ADD CONSTRAINT fk_user_store_manager_id FOREIGN KEY (store_manager_id) REFERENCES public.staff(id)  ON UPDATE CASCADE ON DELETE RESTRICT;
+-- ALTER TABLE ONLY public.user
+--     ADD CONSTRAINT fk_user_customer_id FOREIGN KEY (customer_id) REFERENCES public.customer(id) ON UPDATE CASCADE ON DELETE RESTRICT,
+--     ADD CONSTRAINT fk_user_staff_id FOREIGN KEY (staff_id) REFERENCES public.staff(id) ON UPDATE CASCADE ON DELETE RESTRICT,
+--     ADD CONSTRAINT fk_user_store_manager_id FOREIGN KEY (store_manager_id) REFERENCES public.staff(id)  ON UPDATE CASCADE ON DELETE RESTRICT;
 
 -- INDEXES
 CREATE INDEX idx_movie_title ON public.movie(title);
@@ -349,3 +349,28 @@ COPY public.rental(customer_id, staff_id, inventory_id, rental_start_date, renta
 ALTER TABLE ONLY public.staff
     ADD CONSTRAINT fk_staff_address_id FOREIGN KEY (address_id) REFERENCES public.address(id) ON UPDATE CASCADE ON DELETE RESTRICT,
     ADD CONSTRAINT fk_staff_store_id FOREIGN KEY (store_id) REFERENCES public.store(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+-- Creating users db
+CREATE DATABASE reelfake_users_db WITH TEMPLATE = template0 ENCODING = 'UTF8';
+
+ALTER DATABASE reelfake_users_db OWNER TO postgres;
+
+\connect reelfake_users_db
+
+SET TIME ZONE 'UTC';
+SELECT pg_catalog.set_config('search_path', 'public', false);
+
+CREATE TABLE public.user (
+    id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    first_name CHARACTER VARYING(45) NOT NULL,
+    last_name CHARACTER VARYING(45) NOT NULL,
+    customer_id INT DEFAULT NULL,
+    staff_id INT DEFAULT NULL,
+    store_manager_id INT DEFAULT NULL,
+    email CHARACTER VARYING(150) NOT NULL,
+    user_password CHARACTER VARYING(60) NOT NULL,
+    created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL,
+    updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL
+);
+
+ALTER TABLE public.user OWNER TO postgres;
