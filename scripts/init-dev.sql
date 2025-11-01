@@ -149,8 +149,10 @@ CREATE TABLE public.address (
     address_line citext NOT NULL,
     city_id int NOT NULL,
     postal_code citext NOT NULL,
+    in_use_by CHARACTER VARYING(8) DEFAULT NULL,
     created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL,
-    updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL
+    updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL,
+    CONSTRAINT chk_in_use_by CHECK (in_use_by IN ('customer', 'staff', 'store'))
 );
 
 ALTER TABLE public.address OWNER TO postgres;
@@ -187,12 +189,12 @@ CREATE TABLE public.customer (
     id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     first_name CHARACTER VARYING(45) NOT NULL,
     last_name CHARACTER VARYING(45) NOT NULL,
-    email CHARACTER VARYING(50),
-    address_id INT NOT NULL,
+    email CHARACTER VARYING(50) NOT NULL,
+    address_id INT DEFAULT NULL,
     preferred_store_id INT DEFAULT NULL,
     active boolean DEFAULT true NOT NULL,
-    phone_number CHARACTER VARYING(30) NOT NULL,
-    avatar CHARACTER VARYING(120),
+    phone_number CHARACTER VARYING(30) DEFAULT NULL,
+    avatar CHARACTER VARYING(120) DEFAULT NULL,
     registered_on DATE DEFAULT ('now'::text)::date NOT NULL,
     user_password CHARACTER VARYING(120) DEFAULT NULL,
     created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL,
@@ -337,7 +339,7 @@ COPY public.city(city_name, state_name, country_id) FROM '/docker-entrypoint-ini
 COPY public.movie(tmdb_id, imdb_id, title, original_title, overview, runtime, release_date, genre_ids, origin_country_ids, language_id, movie_status, popularity, budget, revenue, rating_average, rating_count, poster_url) FROM '/docker-entrypoint-initdb.d/movies.csv' DELIMITERS ',' CSV header;
 COPY public.actor(tmdb_id, imdb_id, actor_name, biography, birthday, deathday, place_of_birth, popularity, profile_picture_url) FROM '/docker-entrypoint-initdb.d/actors.csv' DELIMITERS ',' CSV header;
 COPY public.movie_actor(movie_id, actor_id, character_name, cast_order) FROM '/docker-entrypoint-initdb.d/movie_actors.csv' DELIMITERS ',' CSV header;
-COPY public.address(address_line, city_id, postal_code) FROM '/docker-entrypoint-initdb.d/addresses.csv' DELIMITERS ',' CSV header;
+COPY public.address(address_line, city_id, postal_code, in_use_by) FROM '/docker-entrypoint-initdb.d/addresses.csv' DELIMITERS ',' CSV header;
 COPY public.staff(first_name, last_name, email, address_id, store_id, active, phone_number, avatar, user_password) FROM '/docker-entrypoint-initdb.d/staff.csv' DELIMITERS ',' CSV header;
 COPY public.store(store_manager_id, address_id, phone_number) FROM '/docker-entrypoint-initdb.d/stores.csv' DELIMITERS ',' CSV header;
 COPY public.customer(first_name, last_name, email, address_id, preferred_store_id, active, phone_number, avatar, registered_on, user_password) FROM '/docker-entrypoint-initdb.d/customers.csv' DELIMITERS ',' CSV header;
@@ -349,28 +351,3 @@ COPY public.rental(customer_id, staff_id, inventory_id, rental_start_date, renta
 ALTER TABLE ONLY public.staff
     ADD CONSTRAINT fk_staff_address_id FOREIGN KEY (address_id) REFERENCES public.address(id) ON UPDATE CASCADE ON DELETE RESTRICT,
     ADD CONSTRAINT fk_staff_store_id FOREIGN KEY (store_id) REFERENCES public.store(id) ON UPDATE CASCADE ON DELETE RESTRICT;
-
--- Creating users db
-CREATE DATABASE reelfake_users_db WITH TEMPLATE = template0 ENCODING = 'UTF8';
-
-ALTER DATABASE reelfake_users_db OWNER TO postgres;
-
-\connect reelfake_users_db
-
-SET TIME ZONE 'UTC';
-SELECT pg_catalog.set_config('search_path', 'public', false);
-
-CREATE TABLE public.user (
-    id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    first_name CHARACTER VARYING(45) NOT NULL,
-    last_name CHARACTER VARYING(45) NOT NULL,
-    customer_id INT DEFAULT NULL,
-    staff_id INT DEFAULT NULL,
-    store_manager_id INT DEFAULT NULL,
-    email CHARACTER VARYING(150) NOT NULL,
-    user_password CHARACTER VARYING(60) NOT NULL,
-    created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL,
-    updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL
-);
-
-ALTER TABLE public.user OWNER TO postgres;
