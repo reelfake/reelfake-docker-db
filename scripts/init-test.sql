@@ -234,20 +234,20 @@ CREATE TABLE public.rental (
 
 ALTER TABLE public.rental OWNER TO postgres;
 
-CREATE TABLE public.user (
-    id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    first_name CHARACTER VARYING(45) NOT NULL,
-    last_name CHARACTER VARYING(45) NOT NULL,
-    customer_id INT DEFAULT NULL,
-    staff_id INT DEFAULT NULL,
-    store_manager_id INT DEFAULT NULL,
-    email CHARACTER VARYING(150) NOT NULL,
-    user_password CHARACTER VARYING(60) NOT NULL,
-    created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL,
-    updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL
-);
+-- CREATE TABLE public.user (
+--     id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+--     first_name CHARACTER VARYING(45) NOT NULL,
+--     last_name CHARACTER VARYING(45) NOT NULL,
+--     customer_id INT DEFAULT NULL,
+--     staff_id INT DEFAULT NULL,
+--     store_manager_id INT DEFAULT NULL,
+--     email CHARACTER VARYING(150) NOT NULL,
+--     user_password CHARACTER VARYING(60) NOT NULL,
+--     created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL,
+--     updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL
+-- );
 
-ALTER TABLE public.user OWNER TO postgres;
+-- ALTER TABLE public.user OWNER TO postgres;
 
 -- ADD FOREIGN KEYS
 
@@ -281,10 +281,10 @@ ALTER TABLE ONLY public.rental
     ADD CONSTRAINT fk_rental_customer_id FOREIGN KEY (customer_id) REFERENCES public.customer(id) ON UPDATE CASCADE ON DELETE RESTRICT,
     ADD CONSTRAINT fk_rental_staff_id FOREIGN KEY (staff_id) REFERENCES public.staff(id) ON UPDATE CASCADE ON DELETE RESTRICT;
 
-ALTER TABLE ONLY public.user
-    ADD CONSTRAINT fk_user_customer_id FOREIGN KEY (customer_id) REFERENCES public.customer(id) ON UPDATE CASCADE ON DELETE RESTRICT,
-    ADD CONSTRAINT fk_user_staff_id FOREIGN KEY (staff_id) REFERENCES public.staff(id) ON UPDATE CASCADE ON DELETE RESTRICT,
-    ADD CONSTRAINT fk_user_store_manager_id FOREIGN KEY (store_manager_id) REFERENCES public.staff(id)  ON UPDATE CASCADE ON DELETE RESTRICT;
+-- ALTER TABLE ONLY public.user
+--     ADD CONSTRAINT fk_user_customer_id FOREIGN KEY (customer_id) REFERENCES public.customer(id) ON UPDATE CASCADE ON DELETE RESTRICT,
+--     ADD CONSTRAINT fk_user_staff_id FOREIGN KEY (staff_id) REFERENCES public.staff(id) ON UPDATE CASCADE ON DELETE RESTRICT,
+--     ADD CONSTRAINT fk_user_store_manager_id FOREIGN KEY (store_manager_id) REFERENCES public.staff(id)  ON UPDATE CASCADE ON DELETE RESTRICT;
 
 -- INDEXES
 CREATE INDEX idx_movie_title ON public.movie(title);
