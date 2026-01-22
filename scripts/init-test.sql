@@ -203,6 +203,27 @@ CREATE TABLE public.customer (
 
 ALTER TABLE public.customer OWNER TO postgres;
 
+CREATE TABLE public.cart (
+    id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    customer_id INT NOT NULL,
+    movie_id INT NOT NULL,
+    quantity INT NOT NULL,
+    created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL,
+    updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL
+);
+
+ALTER TABLE public.cart OWNER TO postgres;
+
+CREATE TABLE public.wishlist (
+    id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    customer_id INT NOT NULL,
+    movie_id INT NOT NULL,
+    created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL,
+    updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL
+);
+
+ALTER TABLE public.wishlist OWNER TO postgres;
+
 CREATE TABLE public.inventory (
     id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     movie_id INT NOT NULL,
@@ -234,21 +255,6 @@ CREATE TABLE public.rental (
 
 ALTER TABLE public.rental OWNER TO postgres;
 
--- CREATE TABLE public.user (
---     id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
---     first_name CHARACTER VARYING(45) NOT NULL,
---     last_name CHARACTER VARYING(45) NOT NULL,
---     customer_id INT DEFAULT NULL,
---     staff_id INT DEFAULT NULL,
---     store_manager_id INT DEFAULT NULL,
---     email CHARACTER VARYING(150) NOT NULL,
---     user_password CHARACTER VARYING(60) NOT NULL,
---     created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL,
---     updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL
--- );
-
--- ALTER TABLE public.user OWNER TO postgres;
-
 -- ADD FOREIGN KEYS
 
 ALTER TABLE ONLY public.movie
@@ -272,6 +278,14 @@ ALTER TABLE ONLY public.customer
     ADD CONSTRAINT fk_customer_address_id FOREIGN KEY (address_id) REFERENCES public.address(id) ON UPDATE CASCADE ON DELETE RESTRICT,
     ADD CONSTRAINT fk_customer_pref_store_id FOREIGN KEY (preferred_store_id) REFERENCES public.store(id) ON UPDATE CASCADE ON DELETE RESTRICT;
 
+ALTER TABLE ONLY public.cart
+    ADD CONSTRAINT fk_customer_id FOREIGN KEY (customer_id) REFERENCES public.customer(id) ON UPDATE CASCADE ON DELETE RESTRICT,
+    ADD CONSTRAINT fk_movie_id FOREIGN KEY (movie_id) REFERENCES public.movie(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+ALTER TABLE ONLY public.wishlist
+    ADD CONSTRAINT fk_customer_id FOREIGN KEY (customer_id) REFERENCES public.customer(id) ON UPDATE CASCADE ON DELETE RESTRICT,
+    ADD CONSTRAINT fk_movie_id FOREIGN KEY (movie_id) REFERENCES public.movie(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+
 ALTER TABLE ONLY public.inventory
     ADD CONSTRAINT fk_inventory_movie_id FOREIGN KEY (movie_id) REFERENCES public.movie(id) ON UPDATE CASCADE ON DELETE CASCADE,
     ADD CONSTRAINT fk_inventory_store_id FOREIGN KEY (store_id) REFERENCES public.store(id) ON UPDATE CASCADE ON DELETE CASCADE;
@@ -280,11 +294,6 @@ ALTER TABLE ONLY public.rental
     ADD CONSTRAINT fk_rental_inventory_id FOREIGN KEY (inventory_id) REFERENCES public.inventory(id) ON UPDATE CASCADE ON DELETE RESTRICT,
     ADD CONSTRAINT fk_rental_customer_id FOREIGN KEY (customer_id) REFERENCES public.customer(id) ON UPDATE CASCADE ON DELETE RESTRICT,
     ADD CONSTRAINT fk_rental_staff_id FOREIGN KEY (staff_id) REFERENCES public.staff(id) ON UPDATE CASCADE ON DELETE RESTRICT;
-
--- ALTER TABLE ONLY public.user
---     ADD CONSTRAINT fk_user_customer_id FOREIGN KEY (customer_id) REFERENCES public.customer(id) ON UPDATE CASCADE ON DELETE RESTRICT,
---     ADD CONSTRAINT fk_user_staff_id FOREIGN KEY (staff_id) REFERENCES public.staff(id) ON UPDATE CASCADE ON DELETE RESTRICT,
---     ADD CONSTRAINT fk_user_store_manager_id FOREIGN KEY (store_manager_id) REFERENCES public.staff(id)  ON UPDATE CASCADE ON DELETE RESTRICT;
 
 -- INDEXES
 CREATE INDEX idx_movie_title ON public.movie(title);
@@ -312,6 +321,8 @@ CREATE TRIGGER last_updated_trigger BEFORE UPDATE ON public.address FOR EACH ROW
 CREATE TRIGGER last_updated_trigger BEFORE UPDATE ON public.store FOR EACH ROW EXECUTE PROCEDURE public.set_updated_at();
 CREATE TRIGGER last_updated_trigger BEFORE UPDATE ON public.staff FOR EACH ROW EXECUTE PROCEDURE public.set_updated_at();
 CREATE TRIGGER last_updated_trigger BEFORE UPDATE ON public.customer FOR EACH ROW EXECUTE PROCEDURE public.set_updated_at();
+CREATE TRIGGER last_updated_trigger BEFORE UPDATE ON public.cart FOR EACH ROW EXECUTE PROCEDURE public.set_updated_at();
+CREATE TRIGGER last_updated_trigger BEFORE UPDATE ON public.wishlist FOR EACH ROW EXECUTE PROCEDURE public.set_updated_at();
 CREATE TRIGGER last_updated_trigger BEFORE UPDATE ON public.inventory FOR EACH ROW EXECUTE PROCEDURE public.set_updated_at();
 CREATE TRIGGER last_updated_trigger BEFORE UPDATE ON public.rental FOR EACH ROW EXECUTE PROCEDURE public.set_updated_at();
 
@@ -327,6 +338,8 @@ CREATE TRIGGER created_at_trigger BEFORE INSERT ON public.address FOR EACH ROW E
 CREATE TRIGGER created_at_trigger BEFORE INSERT ON public.store FOR EACH ROW EXECUTE PROCEDURE public.set_created_at();
 CREATE TRIGGER created_at_trigger BEFORE INSERT ON public.staff FOR EACH ROW EXECUTE PROCEDURE public.set_created_at();
 CREATE TRIGGER created_at_trigger BEFORE INSERT ON public.customer FOR EACH ROW EXECUTE PROCEDURE public.set_created_at();
+CREATE TRIGGER created_at_trigger BEFORE UPDATE ON public.cart FOR EACH ROW EXECUTE PROCEDURE public.set_created_at();
+CREATE TRIGGER created_at_trigger BEFORE UPDATE ON public.wishlist FOR EACH ROW EXECUTE PROCEDURE public.set_created_at();
 CREATE TRIGGER created_at_trigger BEFORE INSERT ON public.inventory FOR EACH ROW EXECUTE PROCEDURE public.set_created_at();
 CREATE TRIGGER created_at_trigger BEFORE INSERT ON public.rental FOR EACH ROW EXECUTE PROCEDURE public.set_created_at();
 
